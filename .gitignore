@@ -5,5 +5,3 @@ packer-plugin-lxd
 crash.log
 
 dist/*
-.docs/*
-docs.zip

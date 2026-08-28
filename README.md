@@ -31,7 +31,7 @@ packer {
   required_plugins {
     lxd = {
       version = ">= 0.0.1"
-      source  = "github.com/canonical/lxd"
+      source  = "github.com/canonical-berkayoz/lxd"
     }
   }
 }

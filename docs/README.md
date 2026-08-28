@@ -14,7 +14,7 @@ To install this plugin, copy and paste this code into your Packer configuration,
 packer {
   required_plugins {
     lxd = {
-      source  = "github.com/canonical/lxd"
+      source  = "github.com/canonical-berkayoz/lxd"
       version = ">= 0.0.1"
     }
   }
@@ -24,7 +24,7 @@ packer {
 Alternatively, you can use `packer plugins install` to manage installation of this plugin.
 
 ```sh
-$ packer plugins install github.com/canonical/lxd
+$ packer plugins install github.com/canonical-berkayoz/lxd
 ```
 
 ### Components

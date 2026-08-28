@@ -1,43 +1,36 @@
-# Copyright IBM Corp. 2020, 2025
-# SPDX-License-Identifier: MPL-2.0
-
 packer {
   required_plugins {
-    scaffolding = {
-      version = ">=v0.1.0"
-      source  = "github.com/hashicorp/scaffolding"
+    lxd = {
+      version = ">= 0.0.1"
+      source  = "github.com/canonical/lxd"
     }
   }
 }
 
-source "scaffolding-my-builder" "foo-example" {
-  mock = local.foo
-}
+source "lxd" "basic-example" {
+  image        = "ubuntu:24.04"
+  output_image = "packer-lxd-example"
+  reuse_alias  = true
 
-source "scaffolding-my-builder" "bar-example" {
-  mock = local.bar
+  publish_properties = {
+    description = "Built by Packer via the LXD API"
+  }
 }
 
 build {
-  sources = [
-    "source.scaffolding-my-builder.foo-example",
-  ]
+  sources = ["source.lxd.basic-example"]
 
-  source "source.scaffolding-my-builder.bar-example" {
-    name = "bar"
+  provisioner "shell" {
+    inline = [
+      "echo 'hello from inside the instance'",
+      # Quotes and $ reach the guest untouched: the command is passed to the
+      # LXD API as an argument vector, not re-parsed by intermediate shells.
+      "echo \"HOME is $HOME\"",
+    ]
   }
 
-  provisioner "scaffolding-my-provisioner" {
-    only = ["scaffolding-my-builder.foo-example"]
-    mock = "foo: ${local.foo}"
-  }
-
-  provisioner "scaffolding-my-provisioner" {
-    only = ["scaffolding-my-builder.bar"]
-    mock = "bar: ${local.bar}"
-  }
-
-  post-processor "scaffolding-my-post-processor" {
-    mock = "post-processor mock-config"
+  provisioner "file" {
+    content     = "provisioned by packer\n"
+    destination = "/etc/packer-example"
   }
 }

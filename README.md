@@ -1,90 +1,102 @@
-# Packer Plugin Scaffolding
+# Packer Plugin LXD
 
-This repository is a template for a Packer multi-component plugin. It is intended as a starting point for creating Packer plugins, containing:
-- A builder ([builder/scaffolding](builder/scaffolding))
-- A provisioner ([provisioner/scaffolding](provisioner/scaffolding))
-- A post-processor ([post-processor/scaffolding](post-processor/scaffolding))
-- A data source ([datasource/scaffolding](datasource/scaffolding))
-- Docs ([docs](docs))
-- A working example ([example](example))
+A [Packer](https://www.packer.io) plugin that builds [LXD](https://canonical.com/lxd)
+images by launching an instance from a source image, provisioning it, and
+publishing the result as a new image.
 
-These folders contain boilerplate code that you will need to edit to create your own Packer multi-component plugin.
-A full guide to creating Packer plugins can be found at [Extending Packer](https://www.packer.io/docs/plugins/creation).
+Unlike the original `lxc`-based plugin, this one talks to the LXD daemon
+directly over its REST and websocket API using the
+[LXD Go client](https://github.com/canonical/lxd). The `lxc` command-line tool
+is not required.
 
-In this repository you will also find a pre-defined GitHub Action configuration for the release workflow
-(`.goreleaser.yml` and `.github/workflows/release.yml`). The release workflow configuration makes sure the GitHub
-release artifacts are created with the correct binaries and naming conventions.
+## Why the API instead of the CLI
 
-Please see the [GitHub template repository documentation](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template)
-for how to create a new repository from this template on GitHub.
+Shelling out to `lxc` meant every operation passed through a local shell, then
+`lxc`, then a shell inside the instance. Going straight to the API removes that
+layering and the defects that came with it:
 
-## Packer plugin projects
+| | `lxc` shell-out | LXD API |
+| --- | --- | --- |
+| Provisioners holding stdin open (Ansible) | Hang; need an `ansible_connection` workaround | Work as-is |
+| Command quoting | Hand-rolled escaping through three shells | Argument vector, nothing to escape |
+| Exit codes | Recovered from `syscall.WaitStatus` | Reported by the API |
+| Image fingerprint | Regex-scraped from human-readable output | Structured operation metadata |
+| Instance readiness | A fixed `init_sleep` | Polled until it really is ready |
+| `download_dir` | Not implemented | Implemented over SFTP |
 
-Here's a non exaustive list of Packer plugins that you can checkout:
+## Installation
 
-* [github.com/hashicorp/packer-plugin-docker](https://github.com/hashicorp/packer-plugin-docker)
-* [github.com/exoscale/packer-plugin-exoscale](https://github.com/exoscale/packer-plugin-exoscale)
-* [github.com/sylviamoss/packer-plugin-comment](https://github.com/sylviamoss/packer-plugin-comment)
-* [github.com/hashicorp/packer-plugin-hashicups](https://github.com/hashicorp/packer-plugin-hashicups)
-
-Looking at their code will give you good examples.
-
-## Build from source
-
-1. Clone this GitHub repository locally.
-
-2. Run this command from the root directory: 
-```shell 
-go build -ldflags="-X github.com/hashicorp/packer-plugin-scaffolding/version.VersionPrerelease=dev" -o packer-plugin-scaffolding
+```hcl
+packer {
+  required_plugins {
+    lxd = {
+      version = ">= 0.0.1"
+      source  = "github.com/canonical/lxd"
+    }
+  }
+}
 ```
 
-3. After you successfully compile, the `packer-plugin-scaffolding` plugin binary file is in the root directory. 
+Then run `packer init`.
 
-4. To install the compiled plugin, run the following command 
+## Usage
+
+```hcl
+source "lxd" "example" {
+  image        = "ubuntu:24.04"
+  output_image = "ubuntu-with-nginx"
+}
+
+build {
+  sources = ["source.lxd.example"]
+
+  provisioner "shell" {
+    inline = ["apt-get update", "apt-get install -y nginx"]
+  }
+}
+```
+
+See [`docs/builders/lxd.mdx`](docs/builders/lxd.mdx) for the full configuration
+reference and [`example/`](example/) for a runnable template.
+
+## Requirements
+
+- [Go](https://go.dev) >= 1.25.7
+- [Packer](https://www.packer.io/docs/install) >= v1.10.2
+- A reachable LXD daemon. If `lxc version` reports the server as unreachable,
+  add yourself to the `lxd` group:
+  ```shell
+  sudo usermod -aG lxd "$USER"   # then log out and back in, or run: newgrp lxd
+  ```
+
+## Development
+
+Build and install the plugin locally:
+
 ```shell
-packer plugins install --path packer-plugin-scaffolding github.com/hashicorp/scaffolding
+make dev
 ```
 
-### Build on *nix systems
-Unix like systems with the make, sed, and grep commands installed can use the `make dev` to execute the build from source steps. 
+Run the unit tests:
 
-### Build on Windows Powershell
-The preferred solution for building on Windows are steps 2-4 listed above.
-If you would prefer to script the building process you can use the following as a guide
-
-```powershell
-$MODULE_NAME = (Get-Content go.mod | Where-Object { $_ -match "^module"  }) -replace 'module ',''
-$FQN = $MODULE_NAME -replace 'packer-plugin-',''
-go build -ldflags="-X $MODULE_NAME/version.VersionPrerelease=dev" -o packer-plugin-scaffolding.exe
-packer plugins install --path packer-plugin-scaffolding.exe $FQN
+```shell
+make test
 ```
 
-## Running Acceptance Tests
+Run the acceptance tests. These launch real instances and publish real images,
+so they need a working LXD daemon:
 
-Make sure to install the plugin locally using the steps in [Build from source](#build-from-source).
-
-Once everything needed is set up, run:
-```
-PACKER_ACC=1 go test -count 1 -v ./... -timeout=120m
+```shell
+make testacc
 ```
 
-This will run the acceptance tests for all plugins in this set.
+Regenerate the HCL2 spec and the docs after changing the config struct:
 
-## Registering Plugin as Packer Integration
+```shell
+make generate
+```
 
-Partner and community plugins can be hard to find if a user doesn't know what 
-they are looking for. To assist with plugin discovery Packer offers an integration
-portal at https://developer.hashicorp.com/packer/integrations to list known integrations 
-that work with the latest release of Packer. 
+## License
 
-Registering a plugin as an integration requires [metadata configuration](./metadata.hcl) within the plugin
-repository and approval by the Packer team. To initiate the process of registering your 
-plugin as a Packer integration refer to the [Developing Plugins](https://developer.hashicorp.com/packer/docs/plugins/creation#registering-plugins) page.
-
-# Requirements
-
--	[packer-plugin-sdk](https://github.com/hashicorp/packer-plugin-sdk) >= v0.5.2
--	[Go](https://golang.org/doc/install) >= 1.20
-
-## Packer Compatibility
-This scaffolding template is compatible with Packer >= v1.10.2
+This repository is covered by the [AGPL-3.0](LICENSE).
+It is based on [packer-plugin-scaffolding](https://github.com/hashicorp/packer-plugin-scaffolding), which is covered by the [MPL-2.0](LICENSE.MPL-2.0).

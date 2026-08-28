@@ -1,0 +1,23 @@
+# Provisioners that hold stdin open — Ansible most notably — hang under the
+# lxc-based plugin because `lxc exec` never sees EOF on stdin. This builder
+# talks to the exec API directly, where stdin is not waited on, so no
+# `ansible_connection=community.general.lxd` workaround is needed.
+#
+# Rename to ansible.pkr.hcl and provide a playbook to try it.
+source "lxd" "ansible-example" {
+  image        = "ubuntu:24.04"
+  output_image = "packer-lxd-ansible-example"
+  reuse_alias  = true
+}
+
+build {
+  sources = ["source.lxd.ansible-example"]
+
+  provisioner "shell" {
+    inline = ["apt-get update", "apt-get install -y python3"]
+  }
+
+  provisioner "ansible" {
+    playbook_file = "./playbook.yml"
+  }
+}

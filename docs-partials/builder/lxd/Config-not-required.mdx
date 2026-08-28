@@ -1,0 +1,92 @@
+<!-- Code generated from the comments of the Config struct in builder/lxd/config.go; DO NOT EDIT MANUALLY -->
+
+- `image_remote_url` (string) - Explicit image server URL, bypassing remote-name resolution. When set,
+  `image` is treated as an alias or fingerprint on this server.
+
+- `image_remote_protocol` (string) - Protocol of `image_remote_url`; either `simplestreams` or `lxd`.
+  Defaults to `simplestreams`.
+
+- `container_name` (string) - The name of the build instance. Defaults to `packer-{{PackerBuildName}}`.
+
+- `output_image` (string) - The name of the output artifact. Defaults to `container_name`.
+
+- `publish_remote_name` (string) - The (optional) name of the LXD remote on which to publish the image.
+
+- `remote_name` (string) - The name of a remote from your LXD client config to build on. Mutually
+  exclusive with `daemon_address`. Defaults to the client config's default
+  remote, or the local unix socket.
+
+- `daemon_address` (string) - Address of the LXD daemon to build on: either a unix socket path or an
+  `https://host:8443` URL. Mutually exclusive with `remote_name`.
+
+- `client_cert` (string) - Path to a PEM client certificate used to authenticate to the daemon.
+
+- `client_key` (string) - Path to the PEM client key matching `client_cert`.
+
+- `server_cert` (string) - Path to the daemon's PEM server certificate, for pinning.
+
+- `insecure_skip_verify` (bool) - Do not verify the daemon's TLS certificate. Defaults to false.
+
+- `project` (string) - The LXD project to build in. Defaults to the remote's project.
+
+- `target` (string) - The cluster member to target when building against an LXD cluster.
+
+- `profile` (string) - A single profile to apply to the build instance. Defaults to `default`.
+  Use `profiles` to apply more than one.
+
+- `profiles` ([]string) - The list of profiles to apply to the build instance. Mutually exclusive
+  with `profile`.
+
+- `launch_config` (map[string]string) - Key/value pairs set as instance configuration keys on the build instance,
+  equivalent to `lxc launch --config`. Defaults to empty.
+
+- `launch_devices` (map[string]map[string]string) - Devices to attach to the build instance, keyed by device name.
+
+- `virtual_machine` (bool) - Create a virtual-machine image instead of a container image; defaults to
+  false. Equivalent to setting `instance_type` to `virtual-machine`.
+
+- `instance_type` (string) - The type of instance to build: `container` or `virtual-machine`.
+  Defaults to `container`. Mutually exclusive with `virtual_machine`.
+
+- `ephemeral` (bool) - Make the build instance ephemeral. Defaults to false; an ephemeral
+  instance cannot be stopped and published.
+
+- `boot_timeout` (duration string | ex: "1h5m2s") - How long to wait for the instance to become ready to run commands.
+  Defaults to `2m`.
+
+- `wait_for_network` (bool) - Additionally wait for the instance to be assigned a non-loopback IPv4
+  address before provisioning. Defaults to false.
+
+- `publish_properties` (map[string]string) - Key/value pairs set as properties on the published image. Most commonly
+  used to set `description`.
+
+- `publish_aliases` ([]string) - Additional aliases to create for the published image, alongside
+  `output_image`.
+
+- `publish_public` (bool) - Mark the published image public. Defaults to false.
+
+- `compression_algorithm` (string) - Compression algorithm to use when publishing, e.g. `gzip`, `xz`, or
+  `none`. Defaults to the server's setting.
+
+- `reuse_alias` (bool) - Delete any pre-existing alias that conflicts with the aliases being
+  created, instead of failing. Defaults to false.
+
+- `skip_publish` (bool) - Skip publishing the image. The build instance is left running so it can
+  be inspected. Defaults to false.
+
+- `exec_environment` (map[string]string) - Environment variables set for every command run by provisioners.
+
+- `exec_user` (uint32) - The uid to run provisioner commands as. Defaults to 0 (root).
+
+- `exec_group` (uint32) - The gid to run provisioner commands as. Defaults to 0 (root).
+
+- `exec_cwd` (string) - The working directory for provisioner commands. Defaults to the image's
+  configured working directory.
+
+- `command_wrapper` (string) - Deprecated and ignored. The plugin talks to the LXD API directly, so
+  there is no shell command to wrap.
+
+- `init_sleep` (string) - Deprecated and ignored. Superseded by a real readiness probe; see
+  `boot_timeout`.
+
+<!-- End of code generated from the comments of the Config struct in builder/lxd/config.go; -->

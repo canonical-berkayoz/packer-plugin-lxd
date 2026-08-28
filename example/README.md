@@ -1,20 +1,25 @@
-## The Example Folder
+# LXD builder example
 
-This folder must contain a fully working example of the plugin usage. The example must define the `required_plugins`
-block. A pre-defined GitHub Action will run `packer init`, `packer validate`, and `packer build` to test your plugin 
-with the latest version available of Packer.
+Builds an Ubuntu 24.04 container image with the `lxd` builder and publishes it
+under the alias `packer-lxd-example`.
 
-The folder can contain multiple HCL2 compatible files. The action will execute Packer at this folder level
-running `packer init -upgrade .` and `packer build .`.
+Requires a running LXD daemon that your user can reach. If `lxc version` reports
+the server as unreachable, add yourself to the `lxd` group:
 
-If the plugin requires authentication, the configuration should be provided via GitHub Secrets and set as environment
-variables in the [test-plugin-example.yml](/.github/workflows/test-plugin-example.yml) file. Example:
+```shell
+sudo usermod -aG lxd "$USER"   # then log out and back in, or run: newgrp lxd
+```
 
-```yml
-  - name: Build
-    working-directory: ${{ github.event.inputs.folder }}
-    run: PACKER_LOG=${{ github.event.inputs.logs }} packer build .
-    env:
-      AUTH_KEY: ${{ secrets.AUTH_KEY }}
-      AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+Run it:
+
+```shell
+packer init .
+packer validate .
+packer build .
+```
+
+Then clean up:
+
+```shell
+lxc image delete packer-lxd-example
 ```

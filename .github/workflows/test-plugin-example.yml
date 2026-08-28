@@ -24,24 +24,30 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
-      - name: Init
-        uses: hashicorp/packer-github-actions@master
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          working_directory: ${{ github.event.inputs.folder }}
-          command: init
+          go-version-file: .go-version
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@ce93c3c08a6c2ff2275bf4b54ff0d9a75f6c9789 # v3.4.0
+
+      - name: Setup LXD
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
+
+      # Stands in for `packer init`, which downloads the plugin from this
+      # repository's GitHub releases -- there are none yet, and CI should test
+      # the checkout rather than a published build. Builds the plugin from
+      # source and installs it where Packer will find it instead.
+      - name: Init
+        run: make dev
 
       - name: Validate
-        uses: hashicorp/packer-github-actions@master
-        with:
-          working_directory: ${{ github.event.inputs.folder }}
-          command: validate
+        run: packer validate ${{ github.event.inputs.folder }}
         env:
           PACKER_LOG: ${{ github.event.inputs.logs }}
 
       - name: Build
-        uses: hashicorp/packer-github-actions@master
-        with:
-          working_directory: ${{ github.event.inputs.folder }}
-          command: build
+        run: packer build ${{ github.event.inputs.folder }}
         env:
           PACKER_LOG: ${{ github.event.inputs.logs }}
